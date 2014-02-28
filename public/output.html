@@ -18,32 +18,55 @@
 
 			
 
-			// create a plane
-			var geometry = new THREE.PlaneGeometry(2,2);
-			var material = new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture('img/frames/google.png') } );
-			var region1 = 	[ 	
-								new THREE.Vector2(0, 1),
-								new THREE.Vector2(0,0.5), 
-								new THREE.Vector2(0.5,0.5), 
-								new THREE.Vector2(0.5, 1)
-							];
-			geometry.faceVertexUvs[0] = []; // clear existing mappings
-			geometry.faceVertexUvs[0][0] = [ region1[0], region1[1], region1[3] ];
-			geometry.faceVertexUvs[0][1] = [ region1[1], region1[2], region1[3] ];
+			// create a render region - remember coords are in UV so origin is bottom left!
+			var region1 = new RenderRegion('img/frames/google.png', 0, 0.5, 1, 0.5, scene);
 
-			var plane = new THREE.Mesh(geometry, material);
+			var region2 = new RenderRegion('img/frames/google.png', 0.5, 1, 1, 0.5, scene);
 
-			scene.add(plane);
+			var region3 = new RenderRegion('img/frames/google.png', 0, 0.5, 0.5, 0, scene);
 
-			camera.position.z = 5;
-
+			var region4 = new RenderRegion('img/frames/google.png', 0.5, 1, 0.5, 0, scene);
 			
+			camera.position.z = 5;
+			
+			region1.plane.translateX(-1.0);
+			region1.plane.translateY(1.0);
+			region2.plane.translateX(1.0);
+			region2.plane.translateY(1.0);
+			region3.plane.translateX(-1.0);
+			region3.plane.translateY(-1.0);
+			region4.plane.translateX(1.0);
+			region4.plane.translateY(-1.0);
+
+	
+
 			render();
 
 			function render() {
 				requestAnimationFrame(render);
 				renderer.render(scene, camera);
 			}
+
+			function RenderRegion(texture, srcLeft, srcRight, srcTop, srcBtm, scene ){
+				this.geometry = new THREE.PlaneGeometry(2,2);
+				this.material = new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture(texture) } );
+				this.bounds = [ 	
+								new THREE.Vector2(srcLeft, 	srcTop),
+								new THREE.Vector2(srcLeft,	srcBtm), 
+								new THREE.Vector2(srcRight,	srcBtm), 
+								new THREE.Vector2(srcRight, srcTop)
+							];
+
+				this.geometry.faceVertexUvs[0] = []; // clear existing mappings
+				this.geometry.faceVertexUvs[0][0] = [ this.bounds[0], this.bounds[1], this.bounds[3] ];
+				this.geometry.faceVertexUvs[0][1] = [ this.bounds[1], this.bounds[2], this.bounds[3] ];
+
+				this.plane = new THREE.Mesh(this.geometry, this.material);
+
+				scene.add(this.plane);
+
+			}
+
 		</script>		
 	</body>
 </html>

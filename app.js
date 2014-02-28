@@ -1,11 +1,25 @@
 var express = require('express');
+http = require('http');
 var phantom = require('node-phantom');
 
 var app = express();
+app.set('port', 3000);
+var server = http.createServer(app);
+var io = require('socket.io').listen(server, {log: false });
+
+server.listen(3000);
 
 app.use(express.static(__dirname + '/public'));
 
-app.listen(process.env.PORT || 3000);
+io.sockets.on('connection', function(socket){
+	socket.emit('news', { hello: 'world' });
+	socket.on('drag stopped', function (data) {
+		console.log(data);
+	});
+	socket.on('resize stopped', function (data) {
+		console.log(data);
+	});
+});
 
 phantom.create(function(err, ph){
 	return ph.createPage(function(err, page){
