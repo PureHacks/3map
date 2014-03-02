@@ -11,7 +11,7 @@
 	<body>
 		<script src="js/three.min.js"></script>
 		<script src="js/jquery-ui-1.10.4/jquery-1.10.2.js"></script>
-		<script type='text/javascript' src='js/dat.gui.min.js'></script>
+		<script src="js/TransformControls.js"></script>
     	<script src="/socket.io/socket.io.js"></script>
 		<script type="text/javascript">
 
@@ -27,7 +27,7 @@
 
 			var regions = new Array();
 			var textureSize;
-			
+			var arbScaleFactor = 8
 
 			// create a render region - remember coords are in UV so origin is bottom left!
 			/*var region1 = new RenderRegion('img/frames/google.png', 0, 0.5, 1, 0.5, scene);
@@ -39,26 +39,21 @@
 			var region4 = new RenderRegion('img/frames/google.png', 0.5, 1, 0.5, 0, scene);
 			*/
 			camera.position.z = 5;
-			
-			/*region1.plane.translateX(-1.0);
-			region1.plane.translateY(1.0);
-			region2.plane.translateX(1.0);
-			region2.plane.translateY(1.0);
-			region3.plane.translateX(-1.0);
-			region3.plane.translateY(-1.0);
-			region4.plane.translateX(1.0);
-			region4.plane.translateY(-1.0);*/
 
 			render();
 
 			function render() {
+				for(var i = 0; i < regions.length; i++){
+    				//console.log("region: " + i + " of " + regions.length);
+					regions[i].control.update();
+				}
 				requestAnimationFrame(render);
 				renderer.render(scene, camera);
 			}
 
-			function RenderRegion(texture, srcLeft, srcRight, srcTop, srcBtm, regionAspect, scene){
+			function RenderRegion(texture, regionWidth, regionHeight, srcLeft, srcRight, srcTop, srcBtm, regionAspect, scene, camera, renderer){
 
-				this.geometry = new THREE.PlaneGeometry(2 * regionAspect, 2);
+				this.geometry = new THREE.PlaneGeometry(arbScaleFactor * regionHeight * regionAspect, arbScaleFactor * regionHeight);
 				this.material = new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture(texture) } );
 				this.bounds = [ 	
 								new THREE.Vector2(srcLeft, srcTop),
@@ -75,9 +70,18 @@
 
 				scene.add(this.plane);
 
+				this.control = new THREE.TransformControls( camera, renderer.domElement );
+				this.control.addEventListener( 'change', render );
+				this.control.attach(this.plane);
+				scene.add(this.control);
+
 			}
 
 			function updateRegionBounds(region, data){
+				var regionPos = region.plane.position;
+				var regionRot = region.plane.rotation;
+				var regionScale = region.plane.scale;
+
 				var regionAspect = (data.size.width * textureSize.width) / (data.size.height * textureSize.height);
 				
 				var srcLeft = data.pos.left;
@@ -85,7 +89,7 @@
 				var srcTop = data.pos.top;
 				var srcBtm = data.pos.top - data.size.height;
 
-				region.geometry = new THREE.PlaneGeometry(2 * regionAspect, 2);
+				region.geometry = new THREE.PlaneGeometry(arbScaleFactor * data.size.height * regionAspect, arbScaleFactor * data.size.height);
 				region.bounds = [ 	
 					new THREE.Vector2(srcLeft, srcTop),
 					new THREE.Vector2(srcLeft, srcBtm), 
@@ -96,16 +100,76 @@
 				region.geometry.faceVertexUvs[0][0] = [ region.bounds[0], region.bounds[1], region.bounds[3] ];
 				region.geometry.faceVertexUvs[0][1] = [ region.bounds[1], region.bounds[2], region.bounds[3] ];
 
+				region.control.detach(region.plane);
+
 				scene.remove(region.plane);
+
 				region.plane = new THREE.Mesh(region.geometry, region.material);
+
+				region.plane.position = regionPos;
+				region.plane.rotation = regionRot;
+				region.plane.scale = regionScale;
+
 				scene.add(region.plane);
+
+				region.control.attach(region.plane);
 			}
+
+			window.addEventListener( 'keydown', function ( event ) {
+	            //console.log(event.which);
+	            switch ( event.keyCode ) {
+	              case 81: // Q
+	                changeControlModes("space","");
+	                break;
+	              case 87: // W
+	                changeControlModes("mode","translate");
+	                break;
+	              case 69: // E
+	                changeControlModes("mode","rotate");
+	                break;
+	              case 82: // R
+	                changeControlModes("mode","scale");
+	                break;
+				case 187:
+				case 107: // +,=,num+
+					changeControlModes("size","+");
+					break;
+				case 189:
+				case 10: // -,_,num-
+					changeControlModes("size","-");
+					break;
+	            }            
+    		});
+
+    		function changeControlModes(param, arg){
+    			if(param == "mode"){
+    				for(var i = 0; i < regions.length; i++){
+    					console.log(i);
+    					regions[i].control.setMode(arg);
+    				}
+    			} else if(param == "space"){
+    				for(var i = 0; i < regions.length; i++){
+    					regions[i].control.setSpace(regions[i].control.space == "local" ? world : "local" );
+    				}
+    			} else if(param == "size"){
+    				var amt;
+    				if(arg == "+"){
+    					for(var i = 0; i < regions.length; i++){
+	    					regions[i].control.setSize(regions[i].control.size + 0.1)
+	    				}
+    				} else if(arg == "-"){
+    					for(var i = 0; i < regions.length; i++){
+    						regions[i].control.setSize( Math.max(regions[i].control.size - 0.1, 0.1 ) );
+    					}
+    				}
+    			}
+    		}
 
 			/* 
 			 * dat-gui
 			 */
 			
-			gui = new dat.GUI();
+			/*gui = new dat.GUI();
 
 			parameters = 
 			{
@@ -126,7 +190,7 @@
 			});
 			cubeZ.onChange(function(value){ 
 				regions[0].plane.position.set(regions[0].plane.position.x, regions[0].plane.position.y, value);   
-			});
+			});*/
 	
 
 			/*
@@ -163,14 +227,19 @@
 					regions.push(
 						new RenderRegion(
 							$('#texture').attr('src'),
+							data.size.width,
+							data.size.height,
 							data.pos.left,
 							(data.size.width + data.pos.left),
 							data.pos.top,
 							data.pos.top - data.size.height,
 							regionAspect,
-							scene
+							scene,
+							camera,
+							renderer
 						)
 					);
+					console.dir(regions);
 				});
 
 				socket.on('region deleted', function (data){
@@ -178,6 +247,16 @@
 
 					scene.remove(regions[data.index-1].plane);
 					regions.splice(data.index-1, 1);
+				});
+
+				socket.on('updated frame', function(data){
+					var time = (new Date()).getTime();
+					$('#texture').attr('src', 'img/frames/' + data.filename + "?" + time.toString().substr(7, 6));
+					texture = $('#texture').attr('src');
+					for(var i = 0; i < regions.length; i++){
+						regions[i].plane.material = new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture(texture) } )
+						regions[i].plane.material.map.needsUpdate = true;
+					}
 				});
 			});
 
@@ -190,6 +269,6 @@
 			});
 
 		</script>
-		<img src="img/frames/google.png" id="texture">	
+		<img src="img/frames/frame.png" id="texture">	
 	</body>
 </html>

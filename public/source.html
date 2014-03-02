@@ -57,6 +57,11 @@
 			console.log('connected via socket');
 		});
 
+		socket.on('updated frame', function(data){
+			var time = (new Date()).getTime();
+			$('.source-image').attr('src', 'img/frames/' + data.filename + "?" + time.toString().substr(7, 6));
+		});
+
 		function makeResizableAndDraggable(element){
 			element.draggable({
 				stop: function(event, ui) {
@@ -186,7 +191,7 @@
 	</style>
 </head>
 <body>
-	<img class="source-image" src="img/frames/google.png" alt="">
+	<img class="source-image" src="img/frames/frame.png" alt="">
 	<div class="source-region-container">
 	</div>
 </body>

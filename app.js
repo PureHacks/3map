@@ -37,11 +37,25 @@ io.sockets.on('connection', function(socket){
 });
 
 phantom.create(function(err, ph){
-	return ph.createPage(function(err, page){
-		return page.open("http://google.com", function(err, status){
+	ph.createPage(function(err, page){
+		page.open("http://onlineclock.net", function(err, status){
+
+			var captureScreengrab = function(page){
+				page.render('public/img/frames/frame.png', function(err, status){
+					console.log('rendered screengrab');
+					io.sockets.emit('updated frame', {
+						filename: "frame.png"
+					});
+				});
+			}
+
 			console.log("opened page: " + status);
-			return page.render('public/img/frames/google.png');
-			ph.exit();
+			setInterval(function(){
+				captureScreengrab(page);
+			}, 1000); // NB This is not tested with values < 1000ms
+			//ph.exit();
+
+			
 		});
 	});
 });
