@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Pixel Clock</title>
+	<script src="js/jquery-ui-1.10.4/jquery-1.10.2.js"></script>
+	<script type="text/javascript">
+		$('document').ready(function(){
+			updateWeatherData();
+			setInterval(function(){
+				updateWeatherData();
+			}, 30000);
+		});
+
+		function updateWeatherData(){
+			$.ajax({
+				url: "http://api.wunderground.com/api/5a2ea49fd722cf8d/geolookup/conditions/forecast/q/Canada/Toronto.json",
+				dataType : "jsonp",
+			}).done(function(data){
+				console.dir(data);
+				console.log('updated weather data');
+				var temp = "" + data.current_observation.feelslike_c;
+				//temp = temp.replace("-", "_");
+				$('#temp').html(temp);
+			});
+		}
+	</script>
+	<style>
+
+		* {
+			padding: 0;
+			margin: 0;
+		}
+		
+		body {
+			background-color: #000;
+		}
+
+		.container {
+			position: absolute;
+			top: 0
+			left: 0;
+			width: 864px;
+			height: 480px;
+			overflow: hidden;
+		}
+
+		#temp {
+			position: relative;
+			color: #fff;
+			font-size: 768px;
+			font-family: "Bit5x3", serif;
+			margin: 0 0 0 0;
+			padding: 0;
+			z-index: 99;
+			letter-spacing: -96px;
+			-webkit-hyphens: none;
+		}
+
+		#bg {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 864px;
+			height: 480px;
+		}
+
+		#conditions {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			z-index: 0;
+		}
+	</style>
+</head>
+<body>
+	<div class="container">
+		<div id="temp">N/A</div>
+		<div id="bg">
+			<img id="conditions" src="img/snow_lg.gif">
+		</div>
+	</div>
+</body>
+</html>

@@ -27,17 +27,8 @@
 
 			var regions = new Array();
 			var textureSize;
-			var arbScaleFactor = 8
-
-			// create a render region - remember coords are in UV so origin is bottom left!
-			/*var region1 = new RenderRegion('img/frames/google.png', 0, 0.5, 1, 0.5, scene);
-
-			var region2 = new RenderRegion('img/frames/google.png', 0.5, 1, 1, 0.5, scene);
-
-			var region3 = new RenderRegion('img/frames/google.png', 0, 0.5, 0.5, 0, scene);
-
-			var region4 = new RenderRegion('img/frames/google.png', 0.5, 1, 0.5, 0, scene);
-			*/
+			var arbScaleFactor = 4;
+			
 			camera.position.z = 5;
 
 			render();
@@ -144,7 +135,6 @@
     		function changeControlModes(param, arg){
     			if(param == "mode"){
     				for(var i = 0; i < regions.length; i++){
-    					console.log(i);
     					regions[i].control.setMode(arg);
     				}
     			} else if(param == "space"){
@@ -164,34 +154,6 @@
     				}
     			}
     		}
-
-			/* 
-			 * dat-gui
-			 */
-			
-			/*gui = new dat.GUI();
-
-			parameters = 
-			{
-				x: 0, y: 0, z: 0,
-			};
-
-			var folder1 = gui.addFolder('Position');
-			var cubeX = folder1.add( parameters, 'x' ).min(-10).max(10).step(1).listen();
-			var cubeY = folder1.add( parameters, 'y' ).min(-10).max(10).step(1).listen();
-			var cubeZ = folder1.add( parameters, 'z' ).min(-10).max(10).step(1).listen();
-			folder1.open();
-			
-			cubeX.onChange(function(value){
-				regions[0].plane.position.set(value, regions[0].plane.position.y, regions[0].plane.position.z); 
-			});
-			cubeY.onChange(function(value){ 
-				regions[0].plane.position.set(regions[0].plane.position.x, value, regions[0].plane.position.z);  
-			});
-			cubeZ.onChange(function(value){ 
-				regions[0].plane.position.set(regions[0].plane.position.x, regions[0].plane.position.y, value);   
-			});*/
-	
 
 			/*
 			 * sockets.io
@@ -239,13 +201,14 @@
 							renderer
 						)
 					);
-					console.dir(regions);
+					//console.dir(regions);
 				});
 
 				socket.on('region deleted', function (data){
 					console.log(data);
 
 					scene.remove(regions[data.index-1].plane);
+					scene.remove(regions[data.index-1].control)
 					regions.splice(data.index-1, 1);
 				});
 

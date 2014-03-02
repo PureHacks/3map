@@ -7,6 +7,9 @@ app.set('port', 3000);
 var server = http.createServer(app);
 var io = require('socket.io').listen(server, {log: false });
 
+var captureInterval = 10000; //ms
+var initialCaptureDelay = 5000; //ms; gives PhantomJS time to finish loading page assets
+
 server.listen(3000);
 
 app.use(express.static(__dirname + '/public'));
@@ -38,7 +41,11 @@ io.sockets.on('connection', function(socket){
 
 phantom.create(function(err, ph){
 	ph.createPage(function(err, page){
-		page.open("http://onlineclock.net", function(err, status){
+		page.viewportSize = {
+			width: 864,
+			height: 480
+		};
+		page.open("http://localhost:3000/clock.html", function(err, status){
 
 			var captureScreengrab = function(page){
 				page.render('public/img/frames/frame.png', function(err, status){
@@ -50,9 +57,11 @@ phantom.create(function(err, ph){
 			}
 
 			console.log("opened page: " + status);
-			setInterval(function(){
-				captureScreengrab(page);
-			}, 1000); // NB This is not tested with values < 1000ms
+			setTimeout(function(){
+				setInterval(function(){
+					captureScreengrab(page);
+				}, captureInterval); // NB This is not tested with values < 1000ms
+			}, initialCaptureDelay);
 			//ph.exit();
 
 			
