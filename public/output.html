@@ -5,40 +5,49 @@
 		<style> 
 			* { margin: 0; padding: 0; }
 			canvas { width: 100%; height: 100%; }
+			#texture { visibility: hidden; width: 0; height: 0; }
 		</style>
 	</head>
 	<body>
 		<script src="js/three.min.js"></script>
+		<script src="js/jquery-ui-1.10.4/jquery-1.10.2.js"></script>
+		<script type='text/javascript' src='js/dat.gui.min.js'></script>
+    	<script src="/socket.io/socket.io.js"></script>
 		<script type="text/javascript">
+
+			/*
+			 * THREE.JS
+			 */
+
 			var scene = new THREE.Scene();
 			var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 			var renderer = new THREE.WebGLRenderer();
 			renderer.setSize( window.innerWidth, window.innerHeight );
 			document.body.appendChild( renderer.domElement );
 
+			var regions = new Array();
+			var textureSize;
 			
 
 			// create a render region - remember coords are in UV so origin is bottom left!
-			var region1 = new RenderRegion('img/frames/google.png', 0, 0.5, 1, 0.5, scene);
+			/*var region1 = new RenderRegion('img/frames/google.png', 0, 0.5, 1, 0.5, scene);
 
 			var region2 = new RenderRegion('img/frames/google.png', 0.5, 1, 1, 0.5, scene);
 
 			var region3 = new RenderRegion('img/frames/google.png', 0, 0.5, 0.5, 0, scene);
 
 			var region4 = new RenderRegion('img/frames/google.png', 0.5, 1, 0.5, 0, scene);
-			
+			*/
 			camera.position.z = 5;
 			
-			region1.plane.translateX(-1.0);
+			/*region1.plane.translateX(-1.0);
 			region1.plane.translateY(1.0);
 			region2.plane.translateX(1.0);
 			region2.plane.translateY(1.0);
 			region3.plane.translateX(-1.0);
 			region3.plane.translateY(-1.0);
 			region4.plane.translateX(1.0);
-			region4.plane.translateY(-1.0);
-
-	
+			region4.plane.translateY(-1.0);*/
 
 			render();
 
@@ -47,13 +56,14 @@
 				renderer.render(scene, camera);
 			}
 
-			function RenderRegion(texture, srcLeft, srcRight, srcTop, srcBtm, scene ){
-				this.geometry = new THREE.PlaneGeometry(2,2);
+			function RenderRegion(texture, srcLeft, srcRight, srcTop, srcBtm, regionAspect, scene){
+
+				this.geometry = new THREE.PlaneGeometry(2 * regionAspect, 2);
 				this.material = new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture(texture) } );
 				this.bounds = [ 	
-								new THREE.Vector2(srcLeft, 	srcTop),
-								new THREE.Vector2(srcLeft,	srcBtm), 
-								new THREE.Vector2(srcRight,	srcBtm), 
+								new THREE.Vector2(srcLeft, srcTop),
+								new THREE.Vector2(srcLeft, srcBtm), 
+								new THREE.Vector2(srcRight, srcBtm), 
 								new THREE.Vector2(srcRight, srcTop)
 							];
 
@@ -67,6 +77,119 @@
 
 			}
 
-		</script>		
+			function updateRegionBounds(region, data){
+				var regionAspect = (data.size.width * textureSize.width) / (data.size.height * textureSize.height);
+				
+				var srcLeft = data.pos.left;
+				var srcRight = data.size.width + data.pos.left;
+				var srcTop = data.pos.top;
+				var srcBtm = data.pos.top - data.size.height;
+
+				region.geometry = new THREE.PlaneGeometry(2 * regionAspect, 2);
+				region.bounds = [ 	
+					new THREE.Vector2(srcLeft, srcTop),
+					new THREE.Vector2(srcLeft, srcBtm), 
+					new THREE.Vector2(srcRight, srcBtm), 
+					new THREE.Vector2(srcRight, srcTop)
+				];
+				region.geometry.faceVertexUvs[0] = []; // clear existing mappings
+				region.geometry.faceVertexUvs[0][0] = [ region.bounds[0], region.bounds[1], region.bounds[3] ];
+				region.geometry.faceVertexUvs[0][1] = [ region.bounds[1], region.bounds[2], region.bounds[3] ];
+
+				scene.remove(region.plane);
+				region.plane = new THREE.Mesh(region.geometry, region.material);
+				scene.add(region.plane);
+			}
+
+			/* 
+			 * dat-gui
+			 */
+			
+			gui = new dat.GUI();
+
+			parameters = 
+			{
+				x: 0, y: 0, z: 0,
+			};
+
+			var folder1 = gui.addFolder('Position');
+			var cubeX = folder1.add( parameters, 'x' ).min(-10).max(10).step(1).listen();
+			var cubeY = folder1.add( parameters, 'y' ).min(-10).max(10).step(1).listen();
+			var cubeZ = folder1.add( parameters, 'z' ).min(-10).max(10).step(1).listen();
+			folder1.open();
+			
+			cubeX.onChange(function(value){
+				regions[0].plane.position.set(value, regions[0].plane.position.y, regions[0].plane.position.z); 
+			});
+			cubeY.onChange(function(value){ 
+				regions[0].plane.position.set(regions[0].plane.position.x, value, regions[0].plane.position.z);  
+			});
+			cubeZ.onChange(function(value){ 
+				regions[0].plane.position.set(regions[0].plane.position.x, regions[0].plane.position.y, value);   
+			});
+	
+
+			/*
+			 * sockets.io
+			 */
+			
+			$(document).ready(function(){
+				
+				var socket = io.connect('http://localhost:3000');
+				
+				socket.on('hello', function(data){
+					console.log('connected via socket');
+				});
+				
+				socket.on('drag stopped', function (data) {
+					console.log(data);
+					updateRegionBounds(regions[data.index-1], data);
+				});
+				
+				socket.on('resize stopped', function (data) {
+					console.log(data);
+					updateRegionBounds(regions[data.index-1], data);
+				});
+				
+				socket.on('region created', function (data){
+					console.log(data);
+					var textureAspect = textureSize.width / textureSize.height;
+					var regionAspect = (data.size.width * textureSize.width) / (data.size.height * textureSize.height);
+					console.log("textureAspect: " + textureAspect);
+					console.log("regionAspect: " + regionAspect);
+
+					console.log("left: " + data.pos.left + ", right: " + (data.size.width + data.pos.left) + ", top: " + data.pos.top + ", btm: " + (data.pos.top - data.size.height));
+
+					regions.push(
+						new RenderRegion(
+							$('#texture').attr('src'),
+							data.pos.left,
+							(data.size.width + data.pos.left),
+							data.pos.top,
+							data.pos.top - data.size.height,
+							regionAspect,
+							scene
+						)
+					);
+				});
+
+				socket.on('region deleted', function (data){
+					console.log(data);
+
+					scene.remove(regions[data.index-1].plane);
+					regions.splice(data.index-1, 1);
+				});
+			});
+
+			$(window).load(function(){
+				var texture = $('#texture')[0];
+				textureSize = {
+					width: texture.naturalWidth,
+					height: texture.naturalHeight
+				};
+			});
+
+		</script>
+		<img src="img/frames/google.png" id="texture">	
 	</body>
 </html>

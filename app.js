@@ -12,12 +12,27 @@ server.listen(3000);
 app.use(express.static(__dirname + '/public'));
 
 io.sockets.on('connection', function(socket){
-	socket.emit('news', { hello: 'world' });
+	
+	socket.emit('hello', { connected: 'yes' });
+
 	socket.on('drag stopped', function (data) {
 		console.log(data);
+		socket.broadcast.emit('drag stopped', data);
 	});
+	
 	socket.on('resize stopped', function (data) {
 		console.log(data);
+		socket.broadcast.emit('resize stopped', data);
+	});
+	
+	socket.on('region created', function (data){
+		console.log(data);
+		socket.broadcast.emit('region created', data);
+	});
+
+	socket.on('region deleted', function (data){
+		console.log(data);
+		socket.broadcast.emit('region deleted', data);
 	});
 });
 
