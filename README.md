@@ -5,6 +5,15 @@
 
 The server runs on nodejs; Phantom generates screenshots of an arbitrary webpage at a user-set interval. Then the user creates source regions (defining areas of the flat webpage) and output regions which can be moved, rotated, and scaled in 3D using WebGL.
 
+3map started as a question: is it possible to do video-style projection mapping of an arbitrary webpage, fully in the browser?
+
+The short answer is, not quite. Arbitrary webpages can be rendered in 3D easily, but the 'chunking' and mapping required can't be done easily.
+
+Current approaches (and please let me know if you have any ideas):
+
+1. Render image of page (using Phantom), chunk it up & map that image to WebGL textures. Downside is, there's no way to interact with page (although if you loaded the page in the 'source' window you could probably somehow pipe input from there through sockets to node to Phantom)
+2. Render live page using THREE's [CSS3D renderer](http://learningthreejs.com/blog/2013/04/30/closing-the-gap-between-html-and-webgl/) into iframes that can be rotated/scaled/etc: this gets you the appearance of a live page (i.e. user can select text, interact with forms) BUT you'd have to somehow sync all the iframes
+
 To run:
 
 1. Set the page you want to load in app.js (hardcoded to the current clock.html example)
@@ -20,7 +29,7 @@ To run:
 Dependencies / Notes:
 
 - make sure OS-suitable phantomjs executable is present in /dependencies and add to system PATH
-- install bit3x5.ttf on system; phantomjs has webfont issues
+- install bit3x5.ttf on system (phantomjs has webfont issues)
 - make sure to move each output region away from the origin before creating another one or they will overlap and move as a unit
 - no state is stored in the node app, so source and output sync won't survive a window close of either
 - my CSS/JS is all inline because this is a test-drive
