@@ -9,6 +9,9 @@
 			setInterval(function(){
 				updateWeatherData();
 			}, 300000);
+			setInterval(function(){
+				rotateView();
+			}, 5000);
 		});
 
 		function updateWeatherData(){
@@ -18,10 +21,21 @@
 			}).done(function(data){
 				console.dir(data);
 				console.log('updated weather data');
-				var temp = "" + data.current_observation.feelslike_c;
+				var temperature = "" + data.current_observation.feelslike_c;
+				if(temperature > 0){
+					temperature = "<span class='lift'>+</span>" + temperature;
+				} else if(temperature == 0){
+					temperature = temperature + "C";
+				}
 				//temp = temp.replace("-", "_");
-				$('#temp').html(temp);
+				$('#temp').html(temperature);
+				var conditions = "" + data.current_observation.weather;
+				$('#conditions').html(conditions);
 			});
+		}
+
+		function rotateView(){
+			$('#conditions').toggleClass('hide');
 		}
 	</script>
 	<style>
@@ -45,7 +59,7 @@
 		}
 
 		#temp {
-			position: relative;
+			position: absolute;
 			color: #fff;
 			font-size: 768px;
 			font-family: "Bit5x3", serif;
@@ -56,15 +70,44 @@
 			-webkit-hyphens: none;
 		}
 
+		#temp .lift {
+			position: relative;
+			bottom: 95px;
+		}
+
+		#conditions {
+			position: absolute;
+			width: 576px;
+			height: 480px;
+			color: #fff;
+			font-size: 124px;
+			font-family: "Bit5x3", serif;
+			margin: 0 0 0 0;
+			padding: 0;
+			z-index: 200;
+			letter-spacing: -4px;
+			-webkit-hyphens: none;
+			opacity: 1.0;
+			-webkit-transition: opacity 0.1s;
+			word-break: break-all;
+			background-color: #000;
+		}
+
+		#conditions.hide {
+			opacity: 0.0;
+			-webkit-transition: opacity 0.1s;
+		}
+
 		#bg {
 			position: absolute;
 			top: 0;
 			left: 0;
 			width: 864px;
 			height: 480px;
+			display: none;
 		}
 
-		#conditions {
+		#bg #conditions {
 			position: absolute;
 			top: 0;
 			left: 0;
@@ -76,7 +119,8 @@
 </head>
 <body>
 	<div class="container">
-		<div id="temp">N/A</div>
+		<div id="conditions" class="display">N/A</div>
+		<div id="temp" class="display">N/A</div>
 		<div id="bg">
 			<img id="conditions" src="img/snow_lg.gif">
 		</div>

@@ -7,7 +7,7 @@ app.set('port', 3000);
 var server = http.createServer(app);
 var io = require('socket.io').listen(server, {log: false });
 
-var captureInterval = 10000; //ms
+var captureInterval = 4500; //ms
 var initialCaptureDelay = 5000; //ms; gives PhantomJS time to finish loading page assets
 
 server.listen(3000);
